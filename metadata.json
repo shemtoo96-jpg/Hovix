@@ -1,0 +1,8 @@
+{
+  "name": "Hovix: AI-Powered Mood Journal",
+  "description": "An intelligent mood tracking and journaling application designed to help users understand their emotional patterns. Features AI-powered insights, a supportive emotion coach, and beautiful data visualizations to foster mental well-being.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
