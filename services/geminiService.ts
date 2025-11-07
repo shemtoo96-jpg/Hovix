@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import type { MoodEntry, Mood } from '../types';
+import type { MoodEntry, Mood, MovieSuggestion, PlaylistSuggestion } from '../types';
 import { MOODS } from '../constants';
 
 let ai: GoogleGenAI | null = null;
@@ -68,46 +69,11 @@ export const getAIMoodInsights = async (moodEntries: MoodEntry[]): Promise<strin
       contents: prompt,
     });
     
-    // FIX: The .text accessor from the response is a property, not a function.
+    // FIX: The .text accessor from the response is a property, not a a function.
     return response.text;
   } catch (error) {
     console.error("Error getting AI mood insights:", error);
     return "Could not generate insights at this time. Please try again later.";
-  }
-};
-
-export const getAIMoodForecast = async (moodEntries: MoodEntry[]): Promise<string> => {
-  if (isOffline()) return "AI forecast is unavailable while you're offline.";
-  if (moodEntries.length < 7) {
-    return "Log your mood for a full week to unlock your first forecast!";
-  }
-  try {
-    const ai = getAI();
-    const formattedEntries = moodEntries.slice(0, 15).map(e => {
-      const cleanJournal = stripHtml(e.journal);
-      return {
-        date: new Date(e.date).toLocaleDateString(undefined, { weekday: 'long' }),
-        mood: e.mood.name,
-        journal: cleanJournal.substring(0, 50) + (cleanJournal.length > 50 ? '...' : '')
-      };
-    });
-
-    const prompt = `Act as an empathetic and insightful AI emotion coach named 'Aura'. Analyze the user's recent mood history to identify a potential upcoming emotional trend: ${JSON.stringify(formattedEntries)}.
-    Based on the patterns (considering the day of the week, mood, and journal content), provide a gentle, proactive forecast and a small piece of actionable advice.
-    Your forecast should be under 50 words and presented in a friendly, supportive tone.
-    Example: "It looks like your energy sometimes dips mid-week. Planning a short walk on Wednesday could be a nice boost!"
-    If there isn't a clear pattern, offer a general encouraging message for the week ahead.`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-    
-    // FIX: The .text accessor from the response is a property, not a function. This was the root cause of the error in Dashboard.tsx.
-    return response.text;
-  } catch (error) {
-    console.error("Error getting AI mood forecast:", error);
-    return "Could not generate a forecast right now. Let's focus on today.";
   }
 };
 
@@ -212,40 +178,91 @@ export const getEmotionFromImage = async (base64Image: string): Promise<EmotionS
   }
 };
 
-
-export const getAIDreamAnalysis = async (dreamText: string): Promise<string> => {
-  if (isOffline()) return "Dream analysis is unavailable while you're offline.";
-  if (!dreamText) return "Please describe your dream first.";
-  try {
-    const ai = getAI();
-    const prompt = `Act as an insightful and empathetic dream interpreter named 'Aura'. Analyze the following dream description and provide a gentle, symbolic interpretation of its potential emotional meanings. Keep your response under 80 words and focus on feelings and themes. Dream: "${dreamText}"`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-
-    // FIX: The .text accessor from the response is a property, not a function.
-    return response.text;
-  } catch (error) {
-    console.error("Error getting AI dream analysis:", error);
-    return "I'm sorry, I couldn't analyze the dream right now. Please try again later.";
-  }
-};
-
-export interface PlaylistSuggestion {
-  title: string;
-  description: string;
+export interface DashboardAIData {
+  affirmation: string;
+  playlists: PlaylistSuggestion[];
+  movies: MovieSuggestion[];
+  forecast: string;
 }
 
-export const getAIPlaylistSuggestions = async (mood: Mood): Promise<PlaylistSuggestion[]> => {
-  if (isOffline()) return [];
+export const getAIDashboardData = async (mood: Mood | null, moodEntries: MoodEntry[]): Promise<DashboardAIData> => {
+  if (isOffline()) return {
+    affirmation: "You are capable of amazing things.",
+    playlists: [],
+    movies: [],
+    forecast: "AI forecast is unavailable while you're offline."
+  };
+
   try {
     const ai = getAI();
-    const prompt = `Act as an expert music curator named 'Aura'. A user is feeling "${mood.name}". 
-    Generate a list of 3 creative and distinct playlist suggestions that would fit this mood. 
-    For each playlist, provide a "title" and a short, evocative "description" (under 15 words) of its vibe.`;
+    
+    const moodContext = mood ? `The user is currently feeling "${mood.name}".` : "The user has not specified a mood yet.";
+    const suggestionPrompt = mood ? `
+      - A list of 3 creative and distinct playlist suggestions that would fit this mood. For each, provide a "title" and a short "description" (under 15 words).
+      - A list of 2 well-known movie suggestions for this mood. For each, provide a "title", a "description" (under 20 words), and its release "year".
+    ` : "";
+    
+    let forecastContext = "";
+    let forecastPromptPart = `- A "forecast" which is a short, welcoming message encouraging the user to start logging their moods.`;
+    
+    if (moodEntries.length >= 7) {
+        const formattedEntries = moodEntries.slice(0, 15).map(e => {
+            const cleanJournal = stripHtml(e.journal);
+            return {
+                date: new Date(e.date).toLocaleDateString(undefined, { weekday: 'long' }),
+                mood: e.mood.name,
+                journal: cleanJournal.substring(0, 50) + (cleanJournal.length > 50 ? '...' : '')
+            };
+        });
+        forecastContext = `User's recent mood history: ${JSON.stringify(formattedEntries)}.`;
+        forecastPromptPart = `- A "forecast" with a gentle, proactive emotional trend based on the user's recent history. The forecast should be under 50 words in a friendly, supportive tone. If there's no clear pattern, offer general encouragement.`
+    } else if (moodEntries.length > 0) {
+        forecastContext = `User has started logging moods but has less than 7 days of data.`;
+        forecastPromptPart = `- A "forecast" which is a simple encouraging message for the week ahead, as there isn't enough data for a full trend analysis.`;
+    }
 
+    const prompt = `Act as Aura, a gentle and inspiring AI friend. Provide the following content in a single JSON response:
+      - One short, powerful, and positive daily "affirmation" (under 20 words, first person).
+      ${suggestionPrompt}
+      ${forecastPromptPart}
+    
+    Context for suggestions: ${moodContext}
+    Context for forecast: ${forecastContext}
+    `;
+
+    const properties: any = {
+      affirmation: { type: Type.STRING },
+      forecast: { type: Type.STRING },
+    };
+    const requiredFields = ['affirmation', 'forecast'];
+    
+    if (mood) {
+      properties.playlists = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            description: { type: Type.STRING },
+          },
+          required: ['title', 'description']
+        }
+      };
+      properties.movies = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            description: { type: Type.STRING },
+            year: { type: Type.INTEGER },
+          },
+          required: ['title', 'description', 'year']
+        }
+      };
+      requiredFields.push('playlists', 'movies');
+    }
+    
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
@@ -253,48 +270,57 @@ export const getAIPlaylistSuggestions = async (mood: Mood): Promise<PlaylistSugg
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
-          properties: {
-            playlists: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                },
-                required: ['title', 'description']
-              }
-            }
-          },
-          required: ['playlists']
+          properties: properties,
+          required: requiredFields,
         }
       }
     });
 
-    // FIX: The .text accessor from the response is a property, not a function.
     const jsonText = response.text.trim();
     const result = JSON.parse(jsonText);
-    return result.playlists as PlaylistSuggestion[];
+
+    if (!mood) {
+      result.playlists = [];
+      result.movies = [];
+    }
+    
+    return result as DashboardAIData;
+
   } catch (error) {
-    console.error("Error getting AI playlist suggestions:", error);
-    // Return some fallback suggestions
-    return [
+    console.error("Error getting AI dashboard data:", error);
+    const fallbackPlaylists = mood ? [
       { title: `Music for feeling ${mood.name}`, description: "A collection of tracks for your mood." },
       { title: `${mood.name} Vibes`, description: "Songs to match how you feel." },
       { title: `Aura's ${mood.name} Mix`, description: "A special mix just for you." },
-    ];
+    ] : [];
+    const fallbackMovies = mood ? [
+      { title: 'An Uplifting Movie', description: 'A classic film to lift your spirits.', year: 2000 },
+      { title: 'A Comforting Film', description: 'A gentle movie to soothe the soul.', year: 2010 },
+    ] : [];
+    return {
+      affirmation: "I choose to be happy and to love myself today.",
+      playlists: fallbackPlaylists,
+      movies: fallbackMovies,
+      forecast: "Could not generate a forecast right now. Let's focus on today.",
+    };
   }
 };
 
-export const getAIDailyAffirmation = async (): Promise<string> => {
-    if (isOffline()) return "You are capable of amazing things.";
-    try {
-        const ai = getAI();
-        const prompt = `Act as Aura, a gentle and inspiring AI friend. Provide one short, powerful, and positive daily affirmation. The affirmation should be under 20 words and phrased in the first person (e.g., "I am..."). Do not include any introductory text.`;
-        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-        return response.text;
-    } catch (error) {
-        console.error("Error getting AI daily affirmation:", error);
-        return "I choose to be happy and to love myself today.";
-    }
+
+export const getAILearningContent = async (topic: string): Promise<string> => {
+  if (isOffline()) return "Learning content is unavailable while you're offline. Please reconnect to access this feature.";
+  try {
+    const ai = getAI();
+    const prompt = `Act as Aura, a friendly and accessible therapist. Explain the topic of "${topic}" in a simple, encouraging, and actionable way. The content should be around 250 words. Use markdown for formatting: use '#' for the main title, '##' for subheadings, '*' for bullet points, and '**' for bold text. Your goal is to provide a mini-article that is both informative and comforting. Include at least one practical tip or a simple exercise.`;
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+    
+    return response.text;
+  } catch (error) {
+    console.error(`Error getting AI learning content for topic "${topic}":`, error);
+    return "I'm having a little trouble gathering my thoughts on this topic. Please try again in a moment.";
+  }
 };

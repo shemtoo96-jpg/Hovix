@@ -1,12 +1,12 @@
 
-
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from './ui/Card';
 import Button from './ui/Button';
-import { getAICopingTip, getAIDreamAnalysis } from '../services/geminiService';
+import { getAICopingTip } from '../services/geminiService';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { GoogleGenAI, Chat } from "@google/genai";
+import type { ChatMessage } from '../types';
+
 
 // --- Sub-components for Tools Page ---
 
@@ -194,47 +194,149 @@ const CopingTips = () => {
 
 const DreamAnalyzer = () => {
     const [dream, setDream] = useState('');
-    const [analysis, setAnalysis] = useState('');
+    const [conversation, setConversation] = useState<ChatMessage[]>([]);
+    const [currentQuestion, setCurrentQuestion] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [analysisStarted, setAnalysisStarted] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const isOnline = useOnlineStatus();
 
+    const chatRef = useRef<Chat | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        try {
+            if (!process.env.API_KEY) {
+                throw new Error("API_KEY environment variable not set for AI features.");
+            }
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const systemInstruction = "You are Aura, an expert dream interpreter with a deep understanding of psychology, symbolism, and emotional analysis. Your tone is insightful, empathetic, and gentle. When a user describes a dream, provide a comprehensive initial analysis. This first analysis should be well-structured and cover: 1. **Key Symbols:** Identify major symbols and explain their potential meanings in the context of the dream. 2. **Emotional Tone:** Describe the overall feeling or mood of the dream. 3. **Possible Connections:** Gently suggest possible connections to the user's waking life, like recent events, stressors, or feelings. After this initial analysis, invite the user to ask follow-up questions and then answer them clearly and thoughtfully, always relating back to the context of their dream.";
+            
+            chatRef.current = ai.chats.create({
+                model: 'gemini-2.5-flash',
+                config: { systemInstruction },
+            });
+        } catch (e: any) {
+            console.error(e);
+            setError("Could not initialize the Dream Analyzer. Please try again later.");
+        }
+    }, []);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [conversation, isLoading]);
+
     const handleAnalyze = async () => {
-        if (!dream) return;
+        if (!dream.trim() || !chatRef.current) return;
         setIsLoading(true);
-        const result = await getAIDreamAnalysis(dream);
-        setAnalysis(result);
-        setIsLoading(false);
+        setError(null);
+        setAnalysisStarted(true);
+
+        try {
+            const response = await chatRef.current.sendMessage({ message: dream });
+            setConversation([
+                { role: 'user', content: `My dream was: ${dream}` },
+                { role: 'model', content: response.text }
+            ]);
+        } catch (err) {
+            console.error("Error analyzing dream:", err);
+            setError("Sorry, I couldn't analyze the dream right now. Please try again.");
+            setAnalysisStarted(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAskFollowUp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const question = currentQuestion.trim();
+        if (!question || !chatRef.current) return;
+
+        setConversation(prev => [...prev, { role: 'user', content: question }]);
+        setCurrentQuestion('');
+        setIsLoading(true);
+
+        try {
+            const response = await chatRef.current.sendMessage({ message: question });
+            setConversation(prev => [...prev, { role: 'model', content: response.text }]);
+        } catch (err) {
+            console.error("Error with follow-up:", err);
+            setConversation(prev => [...prev, { role: 'model', content: "I'm having a little trouble connecting. Could you ask that again?" }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleReset = () => {
+        setDream('');
+        setConversation([]);
+        setCurrentQuestion('');
+        setAnalysisStarted(false);
+        setError(null);
     };
 
     return (
         <Card>
-            <h3 className="text-xl font-semibold mb-4 text-text-light dark:text-text-dark">AI Dream Analyzer</h3>
-            <div className="space-y-4">
-                <textarea
-                    value={dream}
-                    onChange={(e) => setDream(e.target.value)}
-                    placeholder="Describe your dream here... The more detail, the better."
-                    className="w-full h-28 p-3 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark outline-none transition"
-                    disabled={isLoading || !isOnline}
-                />
-                <Button onClick={handleAnalyze} disabled={isLoading || !dream.trim() || !isOnline}>
-                    {isLoading ? 'Aura is Interpreting...' : 'Analyze My Dream'}
-                </Button>
-                {!isOnline && <p className="text-sm text-center text-gray-500 dark:text-gray-400">Dream Analyzer requires an internet connection.</p>}
-                {analysis && (
-                    <div className="mt-4 p-4 rounded-lg bg-primary/10 dark:bg-primary-dark/20 border-l-4 border-primary dark:border-primary-dark animate-fade-in">
-                        <p className="font-semibold text-primary dark:text-primary-dark mb-1">Aura's Interpretation</p>
-                        <p className="text-sm text-text-light dark:text-gray-200">{analysis}</p>
-                    </div>
-                )}
+            <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-semibold text-text-light dark:text-text-dark">AI Dream Analyzer</h3>
+                {analysisStarted && <Button onClick={handleReset} variant="secondary" size="sm">Start Over</Button>}
             </div>
-             <style>{`
-              @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-              .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
-            `}</style>
+            
+            {!analysisStarted ? (
+                <div className="space-y-4">
+                    <textarea
+                        value={dream}
+                        onChange={(e) => setDream(e.target.value)}
+                        placeholder="Describe your dream here... The more detail, the better."
+                        className="w-full h-36 p-3 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark outline-none transition"
+                        disabled={isLoading || !isOnline}
+                    />
+                    <Button onClick={handleAnalyze} disabled={isLoading || !dream.trim() || !isOnline}>
+                        {isLoading ? 'Aura is Interpreting...' : 'Analyze My Dream'}
+                    </Button>
+                    {!isOnline && <p className="text-sm text-center text-gray-500 dark:text-gray-400">Dream Analyzer requires an internet connection.</p>}
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <div className="max-h-96 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                        {conversation.map((msg, index) => (
+                            <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-lg px-4 py-3 rounded-2xl whitespace-pre-wrap ${msg.role === 'user' ? 'bg-primary dark:bg-primary-dark text-white' : 'bg-gray-200 dark:bg-gray-700 text-text-light dark:text-text-dark'}`}>
+                                    {msg.content}
+                                </div>
+                            </div>
+                        ))}
+                        {isLoading && (
+                             <div className="flex justify-start">
+                                <div className="max-w-lg px-4 py-3 rounded-2xl bg-gray-200 dark:bg-gray-700 text-text-light dark:text-text-dark">
+                                    <div className="flex items-center space-x-1">
+                                    <span className="h-2 w-2 bg-gray-500 rounded-full animate-pulse [animation-delay:-0.3s]"></span>
+                                    <span className="h-2 w-2 bg-gray-500 rounded-full animate-pulse [animation-delay:-0.15s]"></span>
+                                    <span className="h-2 w-2 bg-gray-500 rounded-full animate-pulse"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+                    <form onSubmit={handleAskFollowUp} className="flex items-center space-x-2">
+                         <input
+                            type="text"
+                            value={currentQuestion}
+                            onChange={(e) => setCurrentQuestion(e.target.value)}
+                            placeholder="Ask a follow-up question..."
+                            disabled={isLoading}
+                            className="flex-1 p-3 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark outline-none transition"
+                        />
+                        <Button type="submit" disabled={isLoading || !currentQuestion.trim()}>Send</Button>
+                    </form>
+                </div>
+            )}
+            {error && <p className="text-sm text-danger mt-2">{error}</p>}
         </Card>
     );
-}
+};
+
 
 const MoodReset = () => {
     const activities = [

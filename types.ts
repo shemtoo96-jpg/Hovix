@@ -1,3 +1,4 @@
+
 import type { ReactElement, SVGProps } from 'react';
 
 export interface Mood {
@@ -61,3 +62,38 @@ export interface User {
   email: string;
   photo?: string;
 }
+
+export interface MovieSuggestion {
+  title: string;
+  description: string;
+  year: number;
+}
+
+export interface PlaylistSuggestion {
+  title: string;
+  description: string;
+}
+
+
+// --- User-Generated Learning Content ---
+
+export type UserContentIcon = 'article' | 'video' | 'course' | 'idea' | 'heart';
+
+export interface UserContentBase {
+  id: string;
+  title: string;
+  description: string;
+  icon: UserContentIcon;
+}
+
+export interface UserArticleContent extends UserContentBase {
+  type: 'article';
+  content: string; // Markdown/HTML content
+}
+
+export interface UserVideoContent extends UserContentBase {
+  type: 'video';
+  url: string; // YouTube or direct video link
+}
+
+export type UserContent = UserArticleContent | UserVideoContent;

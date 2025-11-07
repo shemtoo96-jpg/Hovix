@@ -12,19 +12,26 @@ const ANONYMOUS_MOODS = [
     "Someone feels hopeful about the future."
 ];
 
+const REACTIONS = [
+    { emoji: '❤️', name: 'Love' },
+    { emoji: '💪', name: 'Strength' },
+    { emoji: '🌸', name: 'Kindness' },
+    { emoji: '💛', name: 'Support' }
+];
+
 const Community: React.FC = () => {
     const [activeMood, setActiveMood] = useState('');
-    const [loveSent, setLoveSent] = useState(false);
+    const [sentReaction, setSentReaction] = useState<string | null>(null);
     
     useEffect(() => {
         // Pick a random mood when the component loads
         setActiveMood(ANONYMOUS_MOODS[Math.floor(Math.random() * ANONYMOUS_MOODS.length)]);
     }, []);
 
-    const handleSendLove = () => {
-        setLoveSent(true);
+    const handleSendReaction = (reactionName: string) => {
+        setSentReaction(reactionName);
         setTimeout(() => {
-            setLoveSent(false);
+            setSentReaction(null);
             // Optional: change the mood after sending love
             setActiveMood(ANONYMOUS_MOODS[Math.floor(Math.random() * ANONYMOUS_MOODS.length)]);
         }, 2000); // Reset after 2 seconds
@@ -66,22 +73,22 @@ const Community: React.FC = () => {
                             {activeMood}
                         </p>
                     </div>
-                    <p className="text-center text-gray-500 dark:text-gray-400 mb-4">Send some love and encouragement.</p>
+                    <p className="text-center text-gray-500 dark:text-gray-400 mb-4">Send some encouragement.</p>
                     <div className="flex justify-center space-x-3">
-                        {['❤️', '💪', '🌸', '💛'].map(emoji => (
+                        {REACTIONS.map(reaction => (
                             <button
-                                key={emoji}
-                                onClick={handleSendLove}
-                                disabled={loveSent}
+                                key={reaction.emoji}
+                                onClick={() => handleSendReaction(reaction.name)}
+                                disabled={!!sentReaction}
                                 className="p-3 text-3xl rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-transform transform hover:scale-110 disabled:opacity-50"
                             >
-                                {emoji}
+                                {reaction.emoji}
                             </button>
                         ))}
                     </div>
-                    {loveSent && (
+                    {sentReaction && (
                         <div className="absolute inset-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm flex items-center justify-center animate-fade-in-out">
-                            <p className="text-2xl font-bold text-success">Love sent!</p>
+                            <p className="text-2xl font-bold text-success">{sentReaction} sent!</p>
                         </div>
                     )}
                 </Card>

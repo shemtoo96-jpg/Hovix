@@ -57,3 +57,24 @@ export const COMMUNITY_CHALLENGES: CommunityChallenge[] = [
     { name: 'Positivity Challenge', description: 'Focus on logging only positive moods for a week.', emoji: '✨' },
     { name: 'Mindful Moments', description: 'Use a tool from the Emotional Toolkit daily.', emoji: '🧘' },
 ];
+
+// SVG Icons for Movie Services
+export const NetflixIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} viewBox="0 0 24 24" fill="currentColor"><path d="M8.45 6.47L14.33 20h1.5l-5.88-13.53V6.47H8.45zm-2.12 0L12.21 20h1.5L7.83 6.47H6.33z"/></svg>
+);
+export const PrimeVideoIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.32 14.86c-1.89.76-3.79.76-5.68 0-1.89-.76-2.84-2.28-2.84-4.57s.95-3.81 2.84-4.57c1.89-.76 3.79-.76 5.68 0 1.89.76 2.84 2.28 2.84 4.57s-.95 3.81-2.84 4.57z"/></svg>
+);
+export const HuluIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} viewBox="0 0 24 24" fill="currentColor"><path d="M8 3v18h2V14.5h4V18h2V3h-2v5.5H10V3H8z"/></svg>
+);
+export const MovieBoxIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+);
+
+export const MOVIE_SERVICES = [
+    { name: 'Netflix', icon: NetflixIcon, color: '#E50914', searchUrl: 'https://www.netflix.com/search?q=' },
+    { name: 'Prime Video', icon: PrimeVideoIcon, color: '#00A8E1', searchUrl: 'https://www.primevideo.com/search/ref=atv_nb_sr?phrase=' },
+    { name: 'Hulu', icon: HuluIcon, color: '#1CE783', searchUrl: 'https://www.hulu.com/search?q=' },
+    { name: 'MovieBox', icon: MovieBoxIcon, color: '#007BFF', searchUrl: 'https://www.moviebox.com/search?q=' },
+];

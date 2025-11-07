@@ -2,7 +2,7 @@ import React from 'react';
 import Logo from './Logo';
 import type { User } from '../types';
 
-type Page = 'dashboard' | 'analytics' | 'calendar' | 'achievements' | 'tools' | 'chat' | 'community' | 'vision' | 'settings';
+type Page = 'dashboard' | 'analytics' | 'calendar' | 'achievements' | 'tools' | 'learning' | 'chat' | 'community' | 'vision' | 'settings';
 
 interface SidebarProps {
   currentPage: Page;
@@ -18,6 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, logout, 
     { id: 'calendar', name: 'Calendar', icon: CalendarIcon },
     { id: 'achievements', name: 'Achievements', icon: AchievementsIcon },
     { id: 'tools', name: 'Tools', icon: ToolsIcon },
+    { id: 'learning', name: 'Learning Hub', icon: LearningIcon },
     { id: 'chat', name: 'Chat with Aura', icon: ChatIcon },
     { id: 'community', name: 'Community', icon: CommunityIcon },
     { id: 'vision', name: 'Vision', icon: VisionIcon },
@@ -93,6 +94,11 @@ const AchievementsIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const ToolsIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M12 7.5V5.25m0 2.25l-2.25-1.313m0 0L9.75 5.25M3.75 7.5a3 3 0 003 3h.008c.017 0 .034 0 .052.002l.008.001c.017 0 .034 0 .052.002h.008a3 3 0 003-3v-.008c0-.017-.001-.034-.002-.052l-.001-.008a2.98 2.98 0 00-.052-.052v-.008a3 3 0 00-3-3h-.008c-.017 0-.034 0-.052-.002L9 4.5l-.008-.001A2.981 2.981 0 009 4.5h-.008a3 3 0 00-3 3v.008c0 .017.001.034.002.052l.001.008.001.008.052.052v.008a3 3 0 003 3h.008c.017 0 .034 0 .052.002l.008.001c.017 0 .034 0 .052.002h.008a3 3 0 003-3V7.5m-6 4.5v.008c0 .017.001.034.002.052l.001.008.001.008.052.052v.008a3 3 0 003 3h.008c.017 0 .034 0 .052.002l.008.001c.017 0 .034 0 .052.002h.008a3 3 0 003-3v-.008c0-.017-.001-.034-.002-.052l-.001-.008a2.98 2.98 0 00-.052-.052v-.008a3 3 0 00-3-3h-.008c-.017 0-.034 0-.052-.002L15 9l-.008-.001A2.981 2.981 0 0015 9h-.008a3 3 0 00-3 3v.008c0 .017.001.034.002.052l.001.008.001.008.052.052v.008a3 3 0 003 3h.008c.017 0 .034 0 .052.002l.008.001c.017 0 .034 0 .052.002h.008a3 3 0 003-3V12m-6 4.5v.008c0 .017.001.034.002.052l.001.008.001.008.052.052v.008a3 3 0 003 3h.008c.017 0 .034 0 .052.002l.008.001c.017 0 .034 0 .052.002h.008a3 3 0 003-3v-.008c0-.017-.001-.034-.002-.052l-.001-.008a2.98 2.98 0 00-.052-.052v-.008a3 3 0 00-3-3h-.008c-.017 0-.034 0-.052-.002L15 13.5l-.008-.001a2.981 2.981 0 00-.052-.052v-.008a3 3 0 00-3-3v.008c0 .017.001.034.002.052l.001.008.001.008.052.052v.008a3 3 0 003 3h.008c.017 0 .034 0 .052.002l.008.001c.017 0 .034 0 .052.002h.008a3 3 0 003-3V12" />
+    </svg>
+);
+const LearningIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
     </svg>
 );
 const ChatIcon = (props: React.SVGProps<SVGSVGElement>) => (

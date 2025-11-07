@@ -8,6 +8,7 @@ import Calendar from './components/Calendar';
 import Settings from './components/Settings';
 import Achievements from './components/Achievements';
 import Tools from './components/Tools';
+import LearningHub from './components/LearningHub';
 import Chat from './components/Chat';
 import Community from './components/Community';
 import Vision from './components/Vision';
@@ -15,7 +16,7 @@ import Login from './components/Login';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { getAIEmoCoachFeedback } from './services/geminiService';
 
-type Page = 'dashboard' | 'analytics' | 'calendar' | 'achievements' | 'tools' | 'chat' | 'community' | 'vision' | 'settings';
+type Page = 'dashboard' | 'analytics' | 'calendar' | 'achievements' | 'tools' | 'learning' | 'chat' | 'community' | 'vision' | 'settings';
 
 const App: React.FC = () => {
   const [moodEntries, setMoodEntries] = useLocalStorage<{[email: string]: MoodEntry[]}>('allMoodEntries', {});
@@ -129,6 +130,7 @@ const App: React.FC = () => {
         {currentPage === 'calendar' && <Calendar moodEntries={userMoodEntries} />}
         {currentPage === 'achievements' && <Achievements moodEntries={userMoodEntries} />}
         {currentPage === 'tools' && <Tools />}
+        {currentPage === 'learning' && <LearningHub />}
         {currentPage === 'chat' && <Chat />}
         {currentPage === 'community' && <Community />}
         {currentPage === 'vision' && <Vision />}
